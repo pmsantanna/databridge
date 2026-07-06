@@ -1,0 +1,6 @@
+io\databridge\migration\MigratePositionsTest.class
+io\databridge\migration\MigrateEmployeesTest.class
+io\databridge\migration\MigrateBenefitsTest.class
+io\databridge\migration\MigrateDepartmentsTest.class
+io\databridge\migration\MigratePayrollEntriesTest.class
+io\databridge\migration\MigrateVacationRequestsTest.class
