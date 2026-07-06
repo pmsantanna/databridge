@@ -2,7 +2,7 @@
 
 > A type-safe, resumable data migration framework for Java enterprise systems.
 
-![Build](https://img.shields.io/github/actions/workflow/status/seu-usuario/databridge/ci.yml?label=build)
+![Build](https://img.shields.io/github/actions/workflow/status/pmsantanna/databridge/ci.yml?label=build)
 ![Java](https://img.shields.io/badge/Java-17-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
