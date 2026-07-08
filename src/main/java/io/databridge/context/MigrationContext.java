@@ -1,5 +1,6 @@
 package io.databridge.context;
 
+import io.databridge.audit.AuditRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
@@ -11,6 +12,9 @@ import java.util.Map;
 /**
  * Carrega e disponibiliza os datasources de origem e destino.
  * Também mantém estado da execução (checkpoint, contadores, timestamps).
+ *
+ * <p>O {@link AuditRepository} é opcional — se não configurado,
+ * a migração roda normalmente sem persistir auditoria.
  */
 public class MigrationContext {
 
@@ -19,6 +23,9 @@ public class MigrationContext {
     private final DbConfig.Dialect targetDialect;
     private final LocalDateTime startedAt;
     private final Map<String, Object> metadata = new HashMap<>();
+
+    // Opcional — null significa "sem auditoria"
+    private AuditRepository auditRepository;
 
     private int totalFetched  = 0;
     private int totalInserted = 0;
@@ -41,6 +48,19 @@ public class MigrationContext {
         );
     }
 
+    /**
+     * Factory com auditoria — usa o banco destino como banco de controle.
+     * Para usar um banco de controle dedicado, configure o AuditRepository
+     * manualmente via {@link #withAudit(AuditRepository)}.
+     */
+    public static MigrationContext fromConfig(DbConfig sourceConfig, DbConfig targetConfig, boolean audit) {
+        MigrationContext ctx = fromConfig(sourceConfig, targetConfig);
+        if (audit) {
+            ctx.withAudit(new AuditRepository(ctx.target()));
+        }
+        return ctx;
+    }
+
     private static JdbcTemplate buildTemplate(DbConfig config) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName(config.driver());
@@ -50,15 +70,27 @@ public class MigrationContext {
         return new JdbcTemplate(ds);
     }
 
-    // --- Upsert dialect-aware ---
+    // --- Auditoria ---
 
     /**
-     * INSERT ignorando conflitos na chave primária.
-     * <ul>
-     *   <li>PostgreSQL: {@code INSERT ... ON CONFLICT (pk) DO NOTHING}</li>
-     *   <li>SQL Server: {@code MERGE ... WHEN NOT MATCHED THEN INSERT}</li>
-     * </ul>
+     * Configura o repositório de auditoria. Retorna {@code this} para encadeamento:
+     * <pre>
+     * MigrationContext ctx = MigrationContext.fromConfig(src, tgt)
+     *     .withAudit(new AuditRepository(auditJdbc));
+     * </pre>
      */
+    public MigrationContext withAudit(AuditRepository repo) {
+        this.auditRepository = repo;
+        return this;
+    }
+
+    /** Retorna o repositório de auditoria, ou {@code null} se não configurado. */
+    public AuditRepository auditRepository() {
+        return auditRepository;
+    }
+
+    // --- Upsert dialect-aware ---
+
     public void upsertIgnore(String table, String pk, String[] columns, Object[] values) {
         String sql = switch (targetDialect) {
             case POSTGRES  -> buildPostgresUpsert(table, pk, columns);
@@ -75,8 +107,8 @@ public class MigrationContext {
     }
 
     private String buildSqlServerMerge(String table, String pk, String[] columns) {
-        String insertCols = String.join(", ", columns);
-        String sourceCols = String.join(", ", Arrays.stream(columns).map(c -> "src." + c).toArray(String[]::new));
+        String insertCols   = String.join(", ", columns);
+        String sourceCols   = String.join(", ", Arrays.stream(columns).map(c -> "src." + c).toArray(String[]::new));
         String placeholders = String.join(", ", Arrays.stream(columns).map(c -> "?").toArray(String[]::new));
         return """
             MERGE INTO %s AS tgt
@@ -92,7 +124,7 @@ public class MigrationContext {
     public void incrementInserted(int n) { totalInserted += n; }
     public void incrementSkipped(int n)  { totalSkipped  += n; }
 
-    // --- Metadata (checkpoint, flags por rotina) ---
+    // --- Metadata ---
 
     public void set(String key, Object value) { metadata.put(key, value); }
     public Object get(String key)             { return metadata.get(key); }

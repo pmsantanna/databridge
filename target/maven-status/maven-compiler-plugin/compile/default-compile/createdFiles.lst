@@ -1,3 +1,4 @@
+io\databridge\audit\MigrationRun$Status.class
 io\databridge\migration\MigrateDepartments.class
 META-INF\native-image\picocli-generated\io.databridge\databridge\proxy-config.json
 io\databridge\migration\MigrationException.class
@@ -14,6 +15,8 @@ io\databridge\cli\DataBridgeCLI.class
 io\databridge\context\DbConfig$Dialect.class
 io\databridge\cli\DataBridgeCLI$MigrateCommand.class
 io\databridge\cli\DataBridgeCLI$StatusCommand.class
+io\databridge\audit\AuditRepository.class
+io\databridge\audit\MigrationRun.class
 META-INF\native-image\picocli-generated\io.databridge\databridge\reflect-config.json
 io\databridge\migration\MigratePayrollEntries.class
 io\databridge\migration\MigrateBenefits.class

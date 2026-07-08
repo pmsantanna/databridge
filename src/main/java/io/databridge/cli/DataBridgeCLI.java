@@ -86,8 +86,9 @@ public class DataBridgeCLI implements Runnable {
             ProgressPrinter.printHeader("DataBridge Migration Starting");
 
             MigrationContext ctx = MigrationContext.fromConfig(
-                DbConfig.postgres(srcUrl, srcUser, srcPass),
-                DbConfig.postgres(tgtUrl, tgtUser, tgtPass)
+                    DbConfig.postgres(srcUrl, srcUser, srcPass),
+                    DbConfig.postgres(tgtUrl, tgtUser, tgtPass),
+                    true
             );
 
             try {
